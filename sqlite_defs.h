@@ -1,11 +1,9 @@
 //
 // Created by realv on 2/24/2024.
 //
-#include <asm/fpu/api.h>
-
 #ifndef KERNEL_SQLITE_SQLITE_DEFS_H
 #define KERNEL_SQLITE_SQLITE_DEFS_H
-
+#include <linux/printk.h>
 #define HAVE_STDIO_H 1
 #define HAVE_STDLIB_H 1
 
