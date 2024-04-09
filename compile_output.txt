@@ -1,0 +1,61 @@
+  DESCEND objtool
+  DESCEND bpf/resolve_btfids
+  CALL    scripts/atomic/check-atomics.sh
+  CALL    scripts/checksyscalls.sh
+  CHK     include/generated/compile.h
+  CC      ksqlite/sqlite3.o
+  AR      ksqlite/built-in.a
+  GEN     .version
+  CHK     include/generated/compile.h
+  UPD     include/generated/compile.h
+  CC      init/version.o
+  AR      init/built-in.a
+  LD      vmlinux.o
+  MODPOST vmlinux.symvers
+  MODINFO modules.builtin.modinfo
+  GEN     modules.builtin
+  LD      .tmp_vmlinux.btf
+  BTF     .btf.vmlinux.bin.o
+  LD      .tmp_vmlinux.kallsyms1
+  KSYMS   .tmp_vmlinux.kallsyms1.S
+  AS      .tmp_vmlinux.kallsyms1.S
+  LD      .tmp_vmlinux.kallsyms2
+  KSYMS   .tmp_vmlinux.kallsyms2.S
+  AS      .tmp_vmlinux.kallsyms2.S
+  LD      vmlinux
+  BTFIDS  vmlinux
+  SORTTAB vmlinux
+  SYSMAP  System.map
+  MODPOST modules-only.symvers
+  CC      arch/x86/boot/version.o
+  GEN     Module.symvers
+  BTF [M] drivers/block/nbd.ko
+  BTF [M] drivers/net/bonding/bonding.ko
+  BTF [M] drivers/net/dummy.ko
+  BTF [M] drivers/net/vrf.ko
+  BTF [M] drivers/usb/serial/ch341.ko
+  BTF [M] drivers/usb/serial/cp210x.ko
+  BTF [M] drivers/usb/serial/ftdi_sio.ko
+  VOFFSET arch/x86/boot/compressed/../voffset.h
+  BTF [M] drivers/usb/serial/usbserial.ko
+  BTF [M] net/ipv4/ipip.ko
+  OBJCOPY arch/x86/boot/compressed/vmlinux.bin
+  BTF [M] net/ipv4/tunnel4.ko
+  RELOCS  arch/x86/boot/compressed/vmlinux.relocs
+  BTF [M] net/ipv6/sit.ko
+  BTF [M] net/netfilter/xt_CT.ko
+  BTF [M] net/netfilter/xt_bpf.ko
+  CC      arch/x86/boot/compressed/kaslr.o
+  BTF [M] net/netfilter/xt_u32.ko
+  CC      arch/x86/boot/compressed/misc.o
+  GZIP    arch/x86/boot/compressed/vmlinux.bin.gz
+  MKPIGGY arch/x86/boot/compressed/piggy.S
+  AS      arch/x86/boot/compressed/piggy.o
+  LD      arch/x86/boot/compressed/vmlinux
+  ZOFFSET arch/x86/boot/zoffset.h
+  OBJCOPY arch/x86/boot/vmlinux.bin
+  AS      arch/x86/boot/header.o
+  LD      arch/x86/boot/setup.elf
+  OBJCOPY arch/x86/boot/setup.bin
+  BUILD   arch/x86/boot/bzImage
+Kernel: arch/x86/boot/bzImage is ready  (#40)
