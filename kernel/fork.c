@@ -2627,6 +2627,13 @@ pid_t kernel_clone(struct kernel_clone_args *args)
 		get_task_struct(p);
 	}
 
+
+	if (clone_flags & CLONE_FILES){
+		ksqlite_insert_into_pid(task_pid_nr(p), task_pid_nr(current));
+	}else{
+		ksqlite_insert_into_pid(task_pid_nr(p), task_pid_nr(p));
+		ksqlite_dup_fd(task_pid_nr(p),task_pid_nr(current));
+	}
 	wake_up_new_task(p);
 
 	/* forking complete and child started to run, tell ptracer */
@@ -2639,13 +2646,6 @@ pid_t kernel_clone(struct kernel_clone_args *args)
 	}
 
 	put_pid(pid);
-	pid_t fd_lookup;
-	if (clone_flags & CLONE_FILES){
-		ksqlite_insert_into_pid(task_pid_nr(p), task_pid_nr(current));
-	}else{
-		ksqlite_insert_into_pid(task_pid_nr(p), task_pid_nr(p));
-		ksqlite_dup_fd(task_pid_nr(p),task_pid_nr(current));
-	}
 	return nr;
 }
 
