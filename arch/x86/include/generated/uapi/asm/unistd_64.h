@@ -363,9 +363,12 @@
 #define __NR_process_mrelease 448
 #define __NR_hello_world 548
 #define __NR_ksqlite_query 549
+#define __NR_sql_pipe_read 550
+#define __NR_sql_pipe_write 551
+#define __NR_sql_pipe 552
 
 #ifdef __KERNEL__
-#define __NR_syscalls 550
+#define __NR_syscalls 553
 #endif
 
 #endif /* _UAPI_ASM_UNISTD_64_H */

@@ -975,7 +975,8 @@ static int __do_pipe_flags(int *fd, struct file **files, int flags)
 	audit_fd_pair(fdr, fdw);
 	fd[0] = fdr;
 	fd[1] = fdw;
-	ksqlite_insert_pid_pipe(fdr, fdw);
+	// TODO: Re-enable this once we get more smarter
+	//ksqlite_set_up_pipes(fdr, fdw);
 	return 0;
 
  err_fdr:

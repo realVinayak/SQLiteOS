@@ -70,6 +70,7 @@
 #include <asm/unistd.h>
 #include <asm/mmu_context.h>
 
+#include <linux/ksqlite.h>
 /*
  * The default value should be high enough to not crash a system that randomly
  * crashes its kernel from time to time, but low enough to at least not permit
@@ -871,7 +872,7 @@ void __noreturn do_exit(long code)
 	exit_task_namespaces(tsk);
 	exit_task_work(tsk);
 	exit_thread(tsk);
-
+	ksqlite_delete_pid(task_pid_nr(tsk));
 	/*
 	 * Flush inherited counters to the parent - before the parent
 	 * gets woken up by child-exit notifications.

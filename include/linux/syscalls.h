@@ -1384,4 +1384,7 @@ int __sys_setsockopt(int fd, int level, int optname, char __user *optval,
 
 asmlinkage long sys_hello_world(char __user *buf, unsigned long size);
 asmlinkage long sys_ksqlite_query(char __user *buf, unsigned long size);
+asmlinkage long sys_sql_pipe(char __user *fildes);
+asmlinkage long sys_sql_pipe_read(int fd, char __user *out_buff, size_t size_to_read);
+asmlinkage long sys_sql_pipe_write(int fd, char __user *in_buff, size_t size_to_write);
 #endif

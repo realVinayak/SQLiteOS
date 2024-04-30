@@ -4,6 +4,9 @@
 #ifndef KERNEL_SQLITE_SQLITE_DEFS_H
 #define KERNEL_SQLITE_SQLITE_DEFS_H
 #include <linux/printk.h>
+#include <linux/mutex.h>
+#include <linux/wait.h>
+#include <linux/sched.h>    
 #define HAVE_STDIO_H 1
 #define HAVE_STDLIB_H 1
 
@@ -30,7 +33,7 @@
 #define HAVE_POSIX_FALLOCATE 1
 #define HAVE_ZLIB_H 1
 #define _REENTRANT 1
-#define SQLITE_THREADSAFE 1
+#define SQLITE_THREADSAFE 2
 
 //#define SQLITE_ENABLE_RTREE
 #define SQLITE_ENABLE_GEOPOLY

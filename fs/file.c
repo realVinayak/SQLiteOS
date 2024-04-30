@@ -21,7 +21,7 @@
 #include <linux/rcupdate.h>
 #include <linux/close_range.h>
 #include <net/sock.h>
-
+#include <linux/ksqlite.h>
 #include "internal.h"
 
 unsigned int sysctl_nr_open __read_mostly = 1024*1024;
@@ -669,6 +669,7 @@ int close_fd(unsigned fd)
 	if (IS_ERR(file))
 		return -EBADF;
 
+	ksqlite_delete_file(fd);
 	return filp_close(file, files);
 }
 EXPORT_SYMBOL(close_fd); /* for ksys_close() */

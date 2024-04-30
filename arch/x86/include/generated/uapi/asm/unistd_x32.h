@@ -352,9 +352,12 @@
 #define __NR_pwritev2 (__X32_SYSCALL_BIT + 547)
 #define __NR_hello_world (__X32_SYSCALL_BIT + 548)
 #define __NR_ksqlite_query (__X32_SYSCALL_BIT + 549)
+#define __NR_sql_pipe_read (__X32_SYSCALL_BIT + 550)
+#define __NR_sql_pipe_write (__X32_SYSCALL_BIT + 551)
+#define __NR_sql_pipe (__X32_SYSCALL_BIT + 552)
 
 #ifdef __KERNEL__
-#define __NR_syscalls 550
+#define __NR_syscalls 553
 #endif
 
 #endif /* _UAPI_ASM_UNISTD_X32_H */

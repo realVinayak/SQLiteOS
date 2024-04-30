@@ -1562,7 +1562,7 @@ static int copy_files(unsigned long clone_flags, struct task_struct *tsk)
 		atomic_inc(&oldf->count);
 		goto out;
 	}
-
+	
 	newf = dup_fd(oldf, NR_OPEN_MAX, &error);
 	if (!newf)
 		goto out;
@@ -2639,7 +2639,13 @@ pid_t kernel_clone(struct kernel_clone_args *args)
 	}
 
 	put_pid(pid);
-	ksqlite_insert_into_pid(pid_nr(pid));
+	pid_t fd_lookup;
+	if (clone_flags & CLONE_FILES){
+		ksqlite_insert_into_pid(task_pid_nr(p), task_pid_nr(current));
+	}else{
+		ksqlite_insert_into_pid(task_pid_nr(p), task_pid_nr(p));
+		ksqlite_dup_fd(task_pid_nr(p),task_pid_nr(current));
+	}
 	return nr;
 }
 
