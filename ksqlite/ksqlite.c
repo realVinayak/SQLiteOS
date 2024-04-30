@@ -584,6 +584,7 @@ SYSCALL_DEFINE2(ksqlite_query, char __user *, buf, unsigned long, size){
             printk("SQL Error: %s\n", zErrMesg);
             sqlite3_free(zErrMesg);
         }
+    kfree(temp_buff);
     return 0;
 }
 
@@ -768,6 +769,7 @@ SYSCALL_DEFINE3(sql_pipe_read, int, fd, char __user *, out_buff, size_t, size_to
     // All good case. We committed our transaction, good to go!
     // We try waking up another process depending on the length from before
     rc = bytes_read;
+    kfree(read_data);
     goto sqlite_wakeup_prepare_next;
 
 
