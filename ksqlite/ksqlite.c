@@ -300,11 +300,8 @@ sql_stmt_exit:
     sqlite3_finalize(stmt);
 
 sql_exit:
-    int test;
-    test = sqlite3_close(db);
-   // printk("return code for pipes: %d\n", test);
+    WARN_ON(sqlite3_close(db) != SQLITE_OK);
     mutex_unlock(&ksqlite_write_mutex);
-    //BUG_ON(test != 0);
     return rc;
 }
 
@@ -376,11 +373,8 @@ int ksqlite_insert_into_pid(pid_t insert_pid, pid_t lookup_pid){
     }
 
 pid_sql_exit:
-    int test;
-    test = sqlite3_close(db);
-   // printk("return code for pid: %d\n", test);
+    WARN_ON(sqlite3_close(db) != SQLITE_OK);
     mutex_unlock(&ksqlite_write_mutex);
-    //BUG_ON(test != 0);
     return rc;
 }
 
@@ -460,9 +454,7 @@ delete_sql_exit:
     sqlite3_finalize(stmt);
 
 pid_del_sql_exit:
-    int test;
-    test = sqlite3_close(db);
-    //printk("return code for pipes: %d\n", test);
+    WARN_ON(sqlite3_close(db) != SQLITE_OK);
     mutex_unlock(&ksqlite_write_mutex);
     //BUG_ON(test != 0);
     return rc;
@@ -560,10 +552,8 @@ delete_file_finalize:
     sqlite3_finalize(stmt);
 
 delete_file_sql_exit:
-    int test;
-    test = sqlite3_close(db);
+    WARN_ON(sqlite3_close(db) != SQLITE_OK);
     mutex_unlock(&ksqlite_write_mutex);
-    //printk("Successfully deleted file: %d of %d\n", fd, delete_pid);
     return rc;
 }
 
@@ -784,8 +774,7 @@ sqlite_wakeup_prepare_next:
     mutex_unlock(&ksqlite_write_mutex);
    
 sql_pipe_read_exit:
-    int test;
-    test = sqlite3_close(db);
+    WARN_ON(sqlite3_close(db) != SQLITE_OK);
     return rc;
 }
 
