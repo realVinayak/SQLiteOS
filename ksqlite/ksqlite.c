@@ -3,14 +3,42 @@
 #include <linux/module.h>
 #include "sqlite_defs.h"
 #include <linux/mutex.h>
-#include "sqlite3.h"
+#include <linux/ksqlite.h>
 #include <linux/slab.h>
 #include <linux/pid.h>
 #include <linux/uaccess.h>
 #include <linux/syscalls.h>
 #include <linux/sched.h>
 #include <linux/log2.h>
+#include "more.h"
 
+int bug_on_neq(int input){
+    BUG_ON(input == 0);
+    return input;
+}
+
+void warn_with_message(sqlite3 *db){
+    const char *err = sqlite3_errmsg(db);
+    if (err == NULL) printk("No error");
+    else printk("%s", err);
+    printk("\n\n\n\n\n");
+    WARN_ON(1);
+}
+int ksqlite_run_with_message(sqlite3*db, char **zErrMesg, char *stmt){
+    int rc;
+    rc = sqlite3_exec(db, stmt, 0, 0, zErrMesg);
+    if (rc != SQLITE_OK){
+        printk("Couldn't run %s, got ; %s\n", stmt, *zErrMesg); 
+        WARN_ON(1);
+    }
+    return rc;   
+}
+int ksqlite_start_transaction(sqlite3* db, char **zErrMesg){
+    return ksqlite_run_with_message(db, zErrMesg, "BEGIN TRANSACTION;");
+}
+int ksqlite_commit_transaction(sqlite3* db, char **zErrMesg){
+    return ksqlite_run_with_message(db, zErrMesg, "COMMIT;");
+}
 // Every write needs to acquire this mutex.
 DEFINE_MUTEX(ksqlite_write_mutex);
 
@@ -28,7 +56,6 @@ static int callback(void *data, int argc, char **argv, char **azColName){
 
 int total_bytes;
 
-sqlite3_int64 record_pipe;
 static void * ksqlite_malloc(int size){
     //printk("calling with %d, %d, %d\n", size, total_bytes, total_bytes + size);
     total_bytes += size;
@@ -137,8 +164,8 @@ void __init ksqlite_init(void) {
 
     sql = "CREATE TABLE pipe_data" \
           "(dataId   INTEGER PRIMARY KEY NOT NULL," \
-          "read_wq   BLOB NOT NULL,"\
-          "write_wq  BLOB NOT NULL,"
+          "read_wq   BLOB DEFAULT NULL,"\
+          "write_wq  BLOB DEFAULT NULL," \
           "data      BLOB DEFAULT NULL);";
 
     rc = sqlite3_exec(sqlite_main_db, sql, NULL, 0, &zErrMesg);
@@ -150,6 +177,45 @@ void __init ksqlite_init(void) {
         printk("pipe_data Table created successfully\n");
     }
 
+    sql = "CREATE TABLE inode" \
+          "(id          INTEGER PRIMARY KEY NOT NULL," \
+          "dataId       INTEGER DEFAULT NULL,"\
+          "mode         INTEGER BLOB,"\
+          "uid          INTEGER DEFAULT NULL,"\
+          "gid          INTEGER DEFAULT NULL,"\
+          "size         INTEGER DEFAULT NULL,"\
+          "ctime        INTEGER DEFAULT NULL,"\
+          "atime        INTEGER DEFAULT NULL,"\
+          "mtime        INTEGER DEFAULT NULL,"\
+          "name         VARCHAR(256) DEFAULT NULL,"\
+          "parentId     INTEGER DEFAULT NULL,"\
+          "nlink        INTEGER NOT NULL"\
+          ");";
+
+    rc = sqlite3_exec(sqlite_main_db, sql, NULL, 0, &zErrMesg);
+
+    if( rc != SQLITE_OK ){
+        printk("SQL error: %s\n", zErrMesg);
+        sqlite3_free(zErrMesg);
+    } else {
+        printk("inode Table created successfully\n");
+    }
+
+    sql = "CREATE TABLE partitioned_data"\
+          "(dataId INTEGER PRIMARY KEY NOT NULL,"\
+          "inode_no INTEGER NOT NULL,"\
+          "order_no INTEGER NOT NULL,"\
+          "data BLOB DEFAULT NULL);";
+
+    rc = sqlite3_exec(sqlite_main_db, sql, NULL, 0, &zErrMesg);
+
+    if( rc != SQLITE_OK ){
+        printk("SQL error: %s\n", zErrMesg);
+        sqlite3_free(zErrMesg);
+    } else {
+        printk("data table for partitioned files created successfully\n");
+    }
+
     rc = sqlite3_close(sqlite_main_db);
     printk("Closed initialization with %d\n", rc);
     mutex_unlock(&ksqlite_write_mutex);
@@ -159,22 +225,48 @@ int ksqlite_open_db(char *db_name, sqlite3 **db){
     int rc = sqlite3_open(db_name, db);
     if( rc != SQLITE_OK ) {
         printk("Can't open database: %s\n", sqlite3_errmsg(*db));
-    } else {
-        //printk("Current memory usage: %d\n", total_bytes);
-        //printk("Opened database successfully. total size: %d. Pipes count: %d\n", total_bytes, record_pipe);
     }
     return rc;
 }
 
-int ksqlite_start_transaction(sqlite3* db, char **zErrMesg){
+sqlite3_int64 make_data_id(sqlite3 *db, wait_queue_head_t* read_wait_queue, wait_queue_head_t* write_wait_queue ){
+    sqlite3_stmt *stmt;
     int rc;
-    rc = sqlite3_exec(db, "BEGIN TRANSACTION;", 0, 0, zErrMesg);
-    if (rc != SQLITE_OK){
-        printk("Couldn't start transaction; %s\n", *zErrMesg); 
-    }
-    return rc;
-}
 
+    rc = sqlite3_prepare(
+        db,
+        "INSERT INTO pipe_data (read_wq, write_wq) values (?, ?);",
+        -1,
+        &stmt,
+        NULL
+    );
+    
+    if (rc != SQLITE_OK){
+        printk("Error preparating for pid data insert %d", rc);
+        return rc;
+    }
+
+    if ((rc = sqlite3_bind_int64(stmt, 1, read_wait_queue)) != SQLITE_OK){
+        printk("Couldn't bind param %d\n", rc);
+        return rc;
+    }
+
+    if ((rc = sqlite3_bind_int64(stmt, 2, write_wait_queue)) != SQLITE_OK){
+        printk("Couldn't bind param %d\n", rc);
+        return rc;
+    }
+
+    if ((rc = sqlite3_step(stmt)) != SQLITE_DONE ){
+        printk("Error executing stmt: %d\n", rc);
+        return rc;
+    }
+
+    sqlite3_finalize(stmt);
+
+    sqlite3_int64 last_row_id = sqlite3_last_insert_rowid(db);
+
+    return last_row_id;
+}
 
 int ksqlite_set_up_pipes(
     int read_end,
@@ -183,7 +275,6 @@ int ksqlite_set_up_pipes(
     sqlite3 *db;
     int rc;
     mutex_lock(&ksqlite_write_mutex);
-    record_pipe++;
     rc = ksqlite_open_db("/test", &db);
     if (rc != SQLITE_OK) goto sql_exit;
 
@@ -212,37 +303,39 @@ int ksqlite_set_up_pipes(
         goto sql_exit;
     }
 
-    rc = sqlite3_prepare(
-        db,
-        "INSERT INTO pipe_data (read_wq, write_wq) values (?, ?);",
-        -1,
-        &stmt,
-        NULL
-    );
+    sqlite3_int64 last_row_id = make_data_id(db, read_wait_queue, write_wait_queue);
+
+    // rc = sqlite3_prepare(
+    //     db,
+    //     "INSERT INTO pipe_data (read_wq, write_wq) values (?, ?);",
+    //     -1,
+    //     &stmt,
+    //     NULL
+    // );
     
-    if (rc != SQLITE_OK){
-        printk("Error preparating for pid data insert %d", rc);
-        goto sql_exit;
-    }
+    // if (rc != SQLITE_OK){
+    //     printk("Error preparating for pid data insert %d", rc);
+    //     goto sql_exit;
+    // }
 
-    if ((rc = sqlite3_bind_int64(stmt, 1, read_wait_queue)) != SQLITE_OK){
-        printk("Couldn't bind param %d\n", rc);
-        goto sql_stmt_exit;
-    }
+    // if ((rc = sqlite3_bind_int64(stmt, 1, read_wait_queue)) != SQLITE_OK){
+    //     printk("Couldn't bind param %d\n", rc);
+    //     goto sql_stmt_exit;
+    // }
 
-    if ((rc = sqlite3_bind_int64(stmt, 2, write_wait_queue)) != SQLITE_OK){
-        printk("Couldn't bind param %d\n", rc);
-        goto sql_stmt_exit;
-    }
+    // if ((rc = sqlite3_bind_int64(stmt, 2, write_wait_queue)) != SQLITE_OK){
+    //     printk("Couldn't bind param %d\n", rc);
+    //     goto sql_stmt_exit;
+    // }
 
-    if ((rc = sqlite3_step(stmt)) != SQLITE_DONE ){
-        printk("Error executing stmt: %d\n", rc);
-        goto sql_stmt_exit;
-    }
+    // if ((rc = sqlite3_step(stmt)) != SQLITE_DONE ){
+    //     printk("Error executing stmt: %d\n", rc);
+    //     goto sql_stmt_exit;
+    // }
 
-    sqlite3_finalize(stmt);
+    // sqlite3_finalize(stmt);
 
-    sqlite3_int64 last_row_id = sqlite3_last_insert_rowid(db);
+    // sqlite3_int64 last_row_id = sqlite3_last_insert_rowid(db);
 
     rc = sqlite3_prepare(
         db,
@@ -336,7 +429,8 @@ int ksqlite_insert_into_pid(pid_t insert_pid, pid_t lookup_pid){
             goto pid_sql_exit;
         }
         if ((sqlite3_step(stmt)) != SQLITE_ROW){
-            printk("Couldn't step %d\n");
+            printk("Couldn't step\n");
+            WARN_ON(1);
             goto pid_sql_exit;
         }
         fdlookup = sqlite3_column_int(stmt, 0);
@@ -577,14 +671,17 @@ SYSCALL_DEFINE2(ksqlite_query, char __user *, buf, unsigned long, size){
     unsigned long flags;
     char *zErrMesg;
     sqlite3 *db;
+    printk("trying to open the db");
     rc = ksqlite_open_db("/test", &db);
     if (rc != SQLITE_OK) return rc;
+    printk("trying to perform the query");
     // This should be read-only queries always so no mutex
     if ((rc = sqlite3_exec(db, temp_buff, callback, (void *) "Query from user space", &zErrMesg))){
             printk("SQL Error: %s\n", zErrMesg);
             sqlite3_free(zErrMesg);
         }
     kfree(temp_buff);
+    printk("just finished query");
     return 0;
 }
 
@@ -904,4 +1001,178 @@ sqlite3_error_pipe_write:
     int test;
     test = sqlite3_close(db);
     return rc;
+}
+
+
+int ksqlite_setup_for_write(int *p_flags, int lock_flag){
+    if (*p_flags != NULL){
+        WARN_ON(1);
+        *p_flags = 0;
+        BUG_ON(*p_flags != NULL);
+    }
+    sqlite3 *db;
+    struct sql_compact *sql_ref = current->sql_ref;
+    int previous_flags = 0;
+    int rc = SQLITE_OK;
+    char *zErrMesg;
+
+    if (sql_ref != NULL){
+        if (sql_ref->mode < lock_flag){
+            printk("Invalid lock requested!");
+            return EINVAL;
+        }
+        printk("utiliziing a previous lock of %d", lock_flag);
+        return SQLITE_OK;
+    }
+    printk("didn't find previous, making a new one");
+    sql_ref = kmalloc(sizeof(struct sql_compact), GFP_KERNEL);
+    current->sql_ref = sql_ref;
+    previous_flags = IS_UNTOUCHED;
+    *p_flags = previous_flags;
+    
+    if (lock_flag >= SQL_LOCKED_FOR_WRITE){
+        //printk("starting a lock!");
+        mutex_lock(&ksqlite_write_mutex);
+    }
+    sql_ref->mode = lock_flag;
+
+    rc = sqlite3_open("/test", (sqlite3**)&sql_ref->db);
+    if (rc != SQLITE_OK){
+        return rc;
+    }
+
+    if ((rc = ksqlite_start_transaction((sqlite3*)sql_ref->db, &zErrMesg)) != SQLITE_OK){
+        return rc;
+    }
+
+    return SQLITE_OK;
+}
+
+
+void ksqlite_close_for_write(int previous_flags, bool should_commit){
+    int rc = SQLITE_OK;
+    char *zErrMesg;
+    if (previous_flags != IS_UNTOUCHED) return;
+
+    // if we are thee ones who touched it, undo that.
+    if (current->sql_ref->mode == SQL_LOCKED_FOR_WRITE){
+        //printk("unlocking!");
+        mutex_unlock(&ksqlite_write_mutex);
+    }
+
+    if (current->sql_ref->db){
+        if (should_commit){
+            if ((rc = ksqlite_commit_transaction((sqlite3*)current->sql_ref->db, &zErrMesg))){
+                printk("commit failed %d", rc);
+                warn_with_message((sqlite3*)current->sql_ref->db);
+            }
+        }
+        if ((rc = sqlite3_close((sqlite3*)current->sql_ref->db)) != SQLITE_OK){
+            printk("failed closing with %d\n", rc);
+            warn_with_message((sqlite3*)current->sql_ref->db);
+            BUG();
+        }
+    }
+    // TODO: As an optimization, don't free
+    kfree(current->sql_ref);
+    current->sql_ref = NULL;   
+
+
+    // if (previous_flags == IS_UNTOUCHED && current->sql_ref->db){
+    //     if ((rc = sqlite3_close((sqlite3*)current->sql_ref->db)) != SQLITE_OK){
+    //         printk("failed closing with %d\n", rc);
+    //         warn_with_message((sqlite3*)current->sql_ref->db);
+    //         BUG();
+    //     }
+
+	// }
+	// if (previous_flags > IS_UNTOUCHED){
+	// 	current->sql_ref->mode = previous_flags; 
+	// }
+}
+
+SYSCALL_DEFINE1(sql_start_transaction, int, lock_flag)
+{
+    int noop_flags;
+    noop_flags = 0;
+    // Simply start a transaction in the user-space.
+    return ksqlite_setup_for_write(&noop_flags, lock_flag);
+}
+
+SYSCALL_DEFINE1(sql_rollback_transaction, int, should_commit_int){
+    bool should_commit = (should_commit_int == 1);
+    // Force that we acquired it
+    int noop_flags = IS_UNTOUCHED;
+    ksqlite_close_for_write(noop_flags, should_commit);
+    return 0;
+}
+
+
+int perform_on_savepoint(const char __user * name, const size_t size_of_name, const char *query){
+    int rc;
+    char *temp_buff;
+    sqlite3 *db;
+    sqlite3_stmt *stmt;
+    if (size_of_name == 0) return EINVAL;
+    temp_buff = kzalloc(sizeof(char)*(size_of_name+1), GFP_KERNEL);
+    if (!temp_buff) return ENOMEM;
+    if ((rc = copy_from_user(temp_buff, name, size_of_name))){
+        goto sql_revert;
+    }
+    // TODO: Be more nicer to user space, don't choke on invalid...
+    db = (sqlite3 *)(current->sql_ref->db);
+
+    char * main_q = sqlite3_mprintf(query, temp_buff);
+
+    printk("running qu: %s", main_q);
+    if ((rc = sqlite3_prepare(
+        db, 
+        main_q,
+        -1,
+        &stmt,
+        NULL
+        ))){
+         printk("Error preparing stmt, %d\n", rc);
+         warn_with_message(db);
+         goto sql_revert;   
+        }
+
+    // if ((rc = sqlite3_bind_text(
+    //     stmt, 
+    //     bug_on_neq(sqlite3_bind_parameter_index(stmt, ":name")),
+    //     temp_buff,
+    //     size_of_name,
+    //     SQLITE_TRANSIENT
+    //     ))){
+    //         printk("Error binding stmt: %d\n", rc);
+    //         warn_with_message(db);
+    //         goto sql_revert;
+    //     }
+
+    if ((rc = sqlite3_step(stmt)) != SQLITE_DONE){
+        printk("error stepping %d\n", rc);
+        warn_with_message(db);
+        goto sql_revert;
+    }
+    rc = SQLITE_OK;
+
+sql_revert:
+    sqlite3_finalize(stmt);
+    kfree(temp_buff);
+    return rc;
+}
+
+SYSCALL_DEFINE2(sql_start_savepoint, const char __user *, name, size_t, size_name){
+    const char * query = "SAVEPOINT \"%s\"";
+    return perform_on_savepoint(name, size_name, query);
+}
+
+SYSCALL_DEFINE2(sql_release_savepoint, const char __user *, name, size_t, size_name){
+    const char *query = "RELEASE SAVEPOINT \"%s\"";
+    return perform_on_savepoint(name, size_name, query);
+}
+
+SYSCALL_DEFINE2(sql_rollback_savepoint, const char __user *, name, size_t, size_name){
+    const char *query = "ROLLBACK TRANSACTION TO SAVEPOINT \"%s\"";
+    return perform_on_savepoint(name, size_name, query);
 }

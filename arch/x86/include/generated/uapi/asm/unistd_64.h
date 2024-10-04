@@ -366,9 +366,14 @@
 #define __NR_sql_pipe_read 550
 #define __NR_sql_pipe_write 551
 #define __NR_sql_pipe 552
+#define __NR_sql_start_transaction 553
+#define __NR_sql_rollback_transaction 554
+#define __NR_sql_start_savepoint 555
+#define __NR_sql_release_savepoint 556
+#define __NR_sql_rollback_savepoint 557
 
 #ifdef __KERNEL__
-#define __NR_syscalls 553
+#define __NR_syscalls 558
 #endif
 
 #endif /* _UAPI_ASM_UNISTD_64_H */

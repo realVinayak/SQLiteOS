@@ -34,7 +34,7 @@
 #define stack_canary_offset 40 /* offsetof(struct fixed_percpu_data, stack_canary) */
 
 
-#define TASK_threadsp 2968 /* offsetof(struct task_struct, thread.sp) */
+#define TASK_threadsp 3032 /* offsetof(struct task_struct, thread.sp) */
 #define TASK_stack_canary 1440 /* offsetof(struct task_struct, stack_canary) */
 
 #define crypto_tfm_ctx_offset 24 /* offsetof(struct crypto_tfm, __crt_ctx) */

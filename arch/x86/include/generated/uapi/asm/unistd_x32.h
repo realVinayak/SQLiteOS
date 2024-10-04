@@ -355,9 +355,14 @@
 #define __NR_sql_pipe_read (__X32_SYSCALL_BIT + 550)
 #define __NR_sql_pipe_write (__X32_SYSCALL_BIT + 551)
 #define __NR_sql_pipe (__X32_SYSCALL_BIT + 552)
+#define __NR_sql_start_transaction (__X32_SYSCALL_BIT + 553)
+#define __NR_sql_rollback_transaction (__X32_SYSCALL_BIT + 554)
+#define __NR_sql_start_savepoint (__X32_SYSCALL_BIT + 555)
+#define __NR_sql_release_savepoint (__X32_SYSCALL_BIT + 556)
+#define __NR_sql_rollback_savepoint (__X32_SYSCALL_BIT + 557)
 
 #ifdef __KERNEL__
-#define __NR_syscalls 553
+#define __NR_syscalls 558
 #endif
 
 #endif /* _UAPI_ASM_UNISTD_X32_H */

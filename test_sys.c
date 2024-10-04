@@ -16,7 +16,7 @@ int main()
 //    long int pipe_call = syscall(552, fd);
 //    printf("Read %d\n", fd[0]);
  //   printf("Write %d\n", fd[1]);
-   char test[] = "select * from pid_store where parent_id = 1012 or parent_id = 1013;";
+   char test[] = "select count(*) from partitioned_data;";
 //  char test2[] = "SELECT read_wq, write_wq, data, substr(data, 1, 4), length(data), pipe_data.dataId from pid_pipe join pipe_data on pipe_data.dataId = pid_pipe.dataId"; 
     perf_query(test, sizeof(test));
    return 0;

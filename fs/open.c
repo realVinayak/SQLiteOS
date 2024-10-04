@@ -36,6 +36,8 @@
 
 #include "internal.h"
 
+#include <linux/ksqlite.h>
+
 int do_truncate(struct user_namespace *mnt_userns, struct dentry *dentry,
 		loff_t length, unsigned int time_attrs, struct file *filp)
 {
@@ -1190,7 +1192,7 @@ struct file *file_open_root(const struct path *root,
 		return ERR_PTR(err);
 	return do_file_open_root(root, filename, &op);
 }
-EXPORT_SYMBOL(file_open_root);
+EXPORT_SYMBOL(file_open_root);	
 
 static long do_sys_openat2(int dfd, const char __user *filename,
 			   struct open_how *how)
@@ -1198,7 +1200,13 @@ static long do_sys_openat2(int dfd, const char __user *filename,
 	struct open_flags op;
 	int fd = build_open_flags(how, &op);
 	struct filename *tmp;
-
+	int previous_flags = 0;
+	sqlite3_stmt *stmt = NULL;
+	int inode_ino;
+	int rc;
+	char *zErrMesg;
+	pid_t current_pid = (current->pid);
+	sqlite3 *db;
 	if (fd)
 		return fd;
 
@@ -1208,6 +1216,11 @@ static long do_sys_openat2(int dfd, const char __user *filename,
 
 	fd = get_unused_fd_flags(how->flags);
 	if (fd >= 0) {
+		
+		// if ((rc = ksqlite_setup_for_write(&previous_flags, SQL_LOCKED_FOR_WRITE))){
+		// 	goto sql_revert;
+		// }
+		// db = (sqlite3*)(current->sql_ref->db);
 		struct file *f = do_filp_open(dfd, tmp, &op);
 		if (IS_ERR(f)) {
 			put_unused_fd(fd);
@@ -1215,8 +1228,67 @@ static long do_sys_openat2(int dfd, const char __user *filename,
 		} else {
 			fsnotify_open(f);
 			fd_install(fd, f);
+			// if (f->f_inode->i_sb->s_magic != SQLFS_MAGIC){
+			// 	goto sql_revert;
+			// }
+			// inode_ino = f->f_inode->i_ino;
+			// BUG_ON(inode_ino == 0);
+			// /*
+			// INSERT INTO pid_pipe (pid, fd, dataId) 
+			// select 
+			// 	(parentId, :fd, :inode_id) 
+			// from 
+			// 	pid_store 
+			// where 
+			// 	pid_store.pid = :current_pid;
+			// */
+			// if ((rc = sqlite3_prepare(
+			// 	db,
+			// 	"INSERT INTO pid_pipe (pid, fd, dataId) select parent_id, :fd, :inode_id from pid_store where pid_store.pid = :current_pid;",
+			// 	-1,
+			// 	&stmt,
+			// 	NULL
+			// 	)) != SQLITE_OK){
+			// 		warn_with_message(db);
+			// 		goto sql_revert;
+			// 	}
+			
+			// if ((rc = sqlite3_bind_int(stmt, bug_on_neq(sqlite3_bind_parameter_index(stmt, ":fd")), fd))){
+			// 	printk("Error binding stmt %d\n", rc);
+			// 	warn_with_message(db);
+			// 	goto sql_revert;
+			// }
+			// if ((rc = sqlite3_bind_int(stmt, bug_on_neq(sqlite3_bind_parameter_index(stmt, ":inode_id")), inode_ino))){
+			// 	printk("Error binding stmt: %d\n", rc);
+			// 	warn_with_message(db);
+			// 	goto sql_revert;
+			// }
+			// if ((rc = sqlite3_bind_int(stmt, bug_on_neq(sqlite3_bind_parameter_index(stmt, ":current_pid")), current_pid))){
+			// 	printk("Error binding stmt: %d\n", rc);
+			// 	warn_with_message(db);
+			// 	goto sql_revert;
+			// }
+			
+			// if ((rc = sqlite3_step(stmt)) != SQLITE_DONE){
+			// 	printk("Couldn't insert anything!");
+			// 	warn_with_message(db);
+			// 	WARN_ON(1);
+			// 	goto sql_revert;
+			// }
+			rc = SQLITE_OK;
 		}
 	}
+
+
+sql_revert:
+	// sqlite3_finalize(stmt);
+	// ksqlite_close_for_write(previous_flags, rc == SQLITE_OK);
+	
+	if (rc != SQLITE_OK){
+		put_unused_fd(fd);
+		return -rc;
+	}
+
 	putname(tmp);
 	return fd;
 }
