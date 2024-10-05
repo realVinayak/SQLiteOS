@@ -1,0 +1,1 @@
+/home/realvinayak123/modules/git_clone/kernelsqlite/scripts/gdb/vmlinux-gdb.py

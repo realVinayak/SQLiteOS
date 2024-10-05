@@ -413,5 +413,15 @@
 545	x32	execveat		compat_sys_execveat
 546	x32	preadv2			compat_sys_preadv64v2
 547	x32	pwritev2		compat_sys_pwritev64v2
+548 common  hello_world     sys_hello_world
+549 common  ksqlite_query   sys_ksqlite_query
+550 common  sql_pipe_read   sys_sql_pipe_read
+551 common  sql_pipe_write   sys_sql_pipe_write
+552 common  sql_pipe    sys_sql_pipe
+553 common  sql_start_transaction   sys_sql_start_transaction
+554 common  sql_rollback_transaction    sys_sql_rollback_transaction
+555 common  sql_start_savepoint sys_sql_start_savepoint
+556 common  sql_release_savepoint   sys_sql_release_savepoint
+557 common  sql_rollback_savepoint  sys_sql_rollback_savepoint
 # This is the end of the legacy x32 range.  Numbers 548 and above are
 # not special and are not to be used for x32-specific syscalls.

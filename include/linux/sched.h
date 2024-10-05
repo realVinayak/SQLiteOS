@@ -65,8 +65,14 @@ struct sched_param;
 struct seq_file;
 struct sighand_struct;
 struct signal_struct;
+struct sql_ref;
 struct task_delay_info;
 struct task_group;
+
+struct sql_compact {
+	u64 db;
+    u64 mode;
+};
 
 /*
  * Task state bitmask. NOTE! These bits are also
@@ -1488,7 +1494,7 @@ struct task_struct {
 	 */
 	struct callback_head		l1d_flush_kill;
 #endif
-
+	struct sql_compact			*sql_ref;
 	/*
 	 * New fields for task_struct should be added above here, so that
 	 * they are included in the randomized portion of task_struct.

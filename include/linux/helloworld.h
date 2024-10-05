@@ -1,0 +1,1 @@
+extern void hello_world_init(void);

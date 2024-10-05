@@ -112,6 +112,9 @@
 
 #include <kunit/test.h>
 
+#include <linux/helloworld.h>
+#include <linux/ksqlite.h>
+
 static int kernel_init(void *);
 
 extern void init_IRQ(void);
@@ -1132,6 +1135,8 @@ asmlinkage __visible void __init __no_sanitize_address start_kernel(void)
 	acpi_subsystem_init();
 	arch_post_acpi_subsys_init();
 	kcsan_init();
+	hello_world_init();
+	ksqlite_init();
 
 	/* Do the rest non-__init'ed, we're now alive */
 	arch_call_rest_init();

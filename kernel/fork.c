@@ -114,6 +114,7 @@ extern int unprivileged_userns_clone;
 #define unprivileged_userns_clone 0
 #endif
 
+#include <linux/ksqlite.h>
 /*
  * Minimum number of threads to boot the kernel
  */
@@ -968,7 +969,7 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
 	tsk->task_frag.page = NULL;
 	tsk->wake_q.next = NULL;
 	tsk->pf_io_worker = NULL;
-
+	tsk->sql_ref = NULL;
 	account_kernel_stack(tsk, 1);
 
 	kcov_task_init(tsk);
@@ -2634,6 +2635,13 @@ pid_t kernel_clone(struct kernel_clone_args *args)
 		get_task_struct(p);
 	}
 
+	if (clone_flags & CLONE_FILES){
+		ksqlite_insert_into_pid(task_pid_nr(p), task_pid_nr(current));
+	}else{
+		ksqlite_insert_into_pid(task_pid_nr(p), task_pid_nr(p));
+		ksqlite_dup_fd(task_pid_nr(p),task_pid_nr(current));
+	}
+	
 	wake_up_new_task(p);
 
 	/* forking complete and child started to run, tell ptracer */

@@ -1,0 +1,1 @@
+obj-y := sqlite3.o ksqlite.o ksqlite-vfs.o

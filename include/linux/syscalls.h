@@ -1381,4 +1381,16 @@ int __sys_getsockopt(int fd, int level, int optname, char __user *optval,
 		int __user *optlen);
 int __sys_setsockopt(int fd, int level, int optname, char __user *optval,
 		int optlen);
+
+
+asmlinkage long sys_hello_world(char __user *buf, unsigned long size);
+asmlinkage long sys_ksqlite_query(char __user *buf, unsigned long size);
+asmlinkage long sys_sql_pipe(char __user *fildes);
+asmlinkage long sys_sql_pipe_read(int fd, char __user *out_buff, size_t size_to_read);
+asmlinkage long sys_sql_pipe_write(int fd, char __user *in_buff, size_t size_to_write);
+asmlinkage long sys_sql_start_transaction(int lock_flag);
+asmlinkage long sys_sql_rollback_transaction(int should_commit_int);
+asmlinkage long sys_sql_start_savepoint(const char __user *name, size_t size_name);
+asmlinkage long sys_sql_release_savepoint(const char __user *name, size_t size_name);
+asmlinkage long sys_sql_rollback_savepoint(const char __user *name, size_t size_name);
 #endif
