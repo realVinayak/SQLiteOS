@@ -1,0 +1,244 @@
+Source: linux-aws-5.15
+Section: devel
+Priority: optional
+Maintainer: Ubuntu Kernel Team <kernel-team@lists.ubuntu.com>
+XSC-Ubuntu-Compatible-Signing: ubuntu/4 pro/3
+Standards-Version: 3.9.4.0
+Build-Depends:
+ debhelper-compat (= 10),
+ dh-systemd,
+ cpio,
+ kernel-wedge <!stage1> <!noudeb> <!cross> <!autopkgtest>,
+ dctrl-tools <!stage1> <!noudeb> <!cross> <!autopkgtest>,
+ kmod <!stage1>,
+ libcap-dev <!stage1>,
+ makedumpfile [amd64] <!stage1>,
+ libelf-dev <!stage1>,
+ libnewt-dev <!stage1>,
+ libiberty-dev <!stage1>,
+ default-jdk-headless <!stage1>,
+ java-common <!stage1>,
+ rsync <!stage1>,
+ libdw-dev <!stage1>,
+ libpci-dev <!stage1>,
+ pkg-config <!stage1>,
+ python3-dev <!stage1>,
+ flex <!stage1>,
+ bison <!stage1>,
+ libunwind8-dev [amd64 arm64 armhf ppc64el] <!stage1>,
+ liblzma-dev <!stage1>,
+ openssl <!stage1>,
+ libssl-dev <!stage1>,
+ libaudit-dev <!stage1>,
+ bc <!stage1>,
+ gawk <!stage1>,
+ libudev-dev <!stage1>,
+ autoconf <!stage1>,
+ automake <!stage1>,
+ libtool <!stage1>,
+ uuid-dev <!stage1>,
+ libnuma-dev [amd64 arm64 ppc64el s390x] <!stage1>,
+ dkms <!stage1>,
+ curl <!stage1>,
+ zstd [amd64 s390x] <!stage1>,
+ dwarves (>= 1.19) [amd64 arm64 armhf ppc64el s390x] <!stage1>,
+Build-Depends-Indep:
+ xmlto <!stage1>,
+ docbook-utils <!stage1>,
+ ghostscript <!stage1>,
+ fig2dev <!stage1>,
+ bzip2 <!stage1>,
+ sharutils <!stage1>,
+ asciidoc <!stage1>,
+ python3-sphinx <!stage1>,
+ python3-sphinx-rtd-theme <!stage1>,
+ python3-docutils <!stage1>,
+ imagemagick <!stage1>,
+ graphviz <!stage1>,
+ dvipng <!stage1>,
+ fonts-noto-cjk <!stage1>,
+ latexmk <!stage1>,
+ librsvg2-bin <!stage1>,
+Vcs-Git: git://git.launchpad.net/~canonical-kernel/ubuntu/+source/linux-aws/+git/focal
+XS-Testsuite: autopkgtest
+#XS-Testsuite-Depends: gcc-4.7 binutils
+
+Package: linux-aws-5.15-headers-5.15.0-1057
+Build-Profiles: <!stage1>
+Architecture: all
+Multi-Arch: foreign
+Section: devel
+Priority: optional
+Depends: ${misc:Depends}, coreutils
+Breaks: iscsitarget-dkms (<< 1.4.20.3+svn502-2ubuntu4.4)
+Description: Header files related to Linux kernel version 5.15.0
+ This package provides kernel header files for version 5.15.0, for sites
+ that want the latest kernel headers. Please read
+ /usr/share/doc/linux-aws-5.15-headers-5.15.0-1057/debian.README.gz for details
+
+Package: linux-aws-5.15-tools-5.15.0-1057
+Build-Profiles: <!stage1>
+Architecture: amd64 arm64
+Section: devel
+Priority: optional
+Depends: ${misc:Depends}, ${shlibs:Depends}, linux-tools-common
+Description: Linux kernel version specific tools for version 5.15.0-1057
+ This package provides the architecture dependant parts for kernel
+ version locked tools (such as perf and x86_energy_perf_policy) for
+ version 5.15.0-1057 on
+ 64 bit x86.
+ You probably want to install linux-tools-5.15.0-1057-<flavour>.
+
+Package: linux-aws-5.15-cloud-tools-5.15.0-1057
+Build-Profiles: <!stage1>
+Architecture: amd64 arm64
+Section: devel
+Priority: optional
+Depends: ${misc:Depends}, ${shlibs:Depends}, linux-cloud-tools-common
+Description: Linux kernel version specific cloud tools for version 5.15.0-1057
+ This package provides the architecture dependant parts for kernel
+ version locked tools for cloud tools for version 5.15.0-1057 on
+ 64 bit x86.
+ You probably want to install linux-cloud-tools-5.15.0-1057-<flavour>.
+
+
+
+Package: linux-image-unsigned-5.15.0-1057-aws
+Build-Profiles: <!stage1>
+Architecture: amd64 arm64
+Section: kernel
+Priority: optional
+Provides: linux-image, fuse-module, ${linux:rprovides}
+Depends: ${misc:Depends}, ${shlibs:Depends}, kmod, linux-base (>= 4.5ubuntu1~16.04.1), linux-modules-5.15.0-1057-aws
+Recommends: grub-pc [amd64] | grub-efi-amd64 [amd64] | grub-efi-ia32 [amd64] | grub [amd64] | lilo [amd64] | grub-efi-arm64 [arm64], initramfs-tools | linux-initramfs-tool
+Breaks: flash-kernel (<< 3.90ubuntu2) [arm64 armhf], s390-tools (<< 2.3.0-0ubuntu3) [s390x]
+Conflicts: linux-image-5.15.0-1057-aws
+Suggests: fdutils, linux-aws-5.15-doc-5.15.0 | linux-aws-5.15-source-5.15.0, linux-aws-5.15-tools, linux-headers-5.15.0-1057-aws
+Description: Linux kernel image for version 5.15.0 on 64 bit x86 SMP
+ This package contains the unsigned Linux kernel image for version 5.15.0 on
+ 64 bit x86 SMP.
+ .
+ Supports AWS processors.
+ .
+ Geared toward Amazon Web Services (AWS) systems.
+ .
+ You likely do not want to install this package directly. Instead, install
+ the linux-aws meta-package, which will ensure that upgrades work
+ correctly, and that supporting packages are also installed.
+
+Package: linux-modules-5.15.0-1057-aws
+Build-Profiles: <!stage1>
+Architecture: amd64 arm64
+Section: kernel
+Priority: optional
+Depends: ${misc:Depends}, ${shlibs:Depends}, linux-image-5.15.0-1057-aws | linux-image-unsigned-5.15.0-1057-aws
+Built-Using: ${linux:BuiltUsing}
+Description: Linux kernel extra modules for version 5.15.0 on 64 bit x86 SMP
+ Contains the corresponding System.map file, the modules built by the
+ packager, and scripts that try to ensure that the system is not left in an
+ unbootable state after an update.
+ .
+ Supports AWS processors.
+ .
+ Geared toward Amazon Web Services (AWS) systems.
+ .
+ You likely do not want to install this package directly. Instead, install
+ the linux-aws meta-package, which will ensure that upgrades work
+ correctly, and that supporting packages are also installed.
+
+Package: linux-modules-extra-5.15.0-1057-aws
+Build-Profiles: <!stage1>
+Architecture: amd64 arm64
+Section: kernel
+Priority: optional
+Depends: ${misc:Depends}, ${shlibs:Depends}, linux-image-5.15.0-1057-aws | linux-image-unsigned-5.15.0-1057-aws, crda | wireless-crda
+Description: Linux kernel extra modules for version 5.15.0 on 64 bit x86 SMP
+ This package contains the Linux kernel extra modules for version 5.15.0 on
+ 64 bit x86 SMP.
+ .
+ Supports AWS processors.
+ .
+ Geared toward Amazon Web Services (AWS) systems.
+ .
+ You likely do not want to install this package directly. Instead, install
+ the linux-modules-extra-aws meta-package, which will ensure that upgrades
+ work correctly, and that supporting packages are also installed.
+
+Package: linux-headers-5.15.0-1057-aws
+Build-Profiles: <!stage1>
+Architecture: amd64 arm64
+Section: devel
+Priority: optional
+Depends: ${misc:Depends}, linux-aws-5.15-headers-5.15.0-1057, ${shlibs:Depends}
+Provides: linux-headers, linux-headers-3.0
+Description: Linux kernel headers for version 5.15.0 on 64 bit x86 SMP
+ This package provides kernel header files for version 5.15.0 on
+ 64 bit x86 SMP.
+ .
+ This is for sites that want the latest kernel headers.  Please read
+ /usr/share/doc/linux-headers-5.15.0-1057/debian.README.gz for details.
+
+Package: linux-image-unsigned-5.15.0-1057-aws-dbgsym
+Build-Profiles: <!stage1>
+Architecture: amd64 arm64
+Section: devel
+Priority: optional
+Depends: ${misc:Depends}
+Provides: linux-debug
+Description: Linux kernel debug image for version 5.15.0 on 64 bit x86 SMP
+ This package provides the unsigned kernel debug image for version 5.15.0 on
+ 64 bit x86 SMP.
+ .
+ This is for sites that wish to debug the kernel.
+ .
+ The kernel image contained in this package is NOT meant to boot from. It
+ is uncompressed, and unstripped. This package also includes the
+ unstripped modules.
+
+Package: linux-tools-5.15.0-1057-aws
+Build-Profiles: <!stage1>
+Architecture: amd64 arm64
+Section: devel
+Priority: optional
+Depends: ${misc:Depends}, linux-aws-5.15-tools-5.15.0-1057
+Description: Linux kernel version specific tools for version 5.15.0-1057
+ This package provides the architecture dependant parts for kernel
+ version locked tools (such as perf and x86_energy_perf_policy) for
+ version 5.15.0-1057 on
+ 64 bit x86.
+
+Package: linux-cloud-tools-5.15.0-1057-aws
+Build-Profiles: <!stage1>
+Architecture: amd64 arm64
+Section: devel
+Priority: optional
+Depends: ${misc:Depends}, linux-aws-5.15-cloud-tools-5.15.0-1057
+Description: Linux kernel version specific cloud tools for version 5.15.0-1057
+ This package provides the architecture dependant parts for kernel
+ version locked tools for cloud for version 5.15.0-1057 on
+ 64 bit x86.
+
+Package: linux-udebs-aws
+Build-Profiles: <!stage1> <!noudeb> <!cross> <!autopkgtest>
+XC-Package-Type: udeb
+Section: debian-installer
+Architecture: amd64 arm64
+Depends: ${udeb:Depends}
+Description: Metapackage depending on kernel udebs
+ This package depends on the all udebs that the kernel build generated,
+ for easier version and migration tracking.
+
+
+Package: linux-buildinfo-5.15.0-1057-aws
+Build-Profiles: <!stage1>
+Architecture: amd64 arm64
+Section: kernel
+Priority: optional
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Built-Using: ${linux:BuiltUsing}
+Description: Linux kernel buildinfo for version 5.15.0 on 64 bit x86 SMP
+ This package contains the Linux kernel buildinfo for version 5.15.0 on
+ 64 bit x86 SMP.
+ .
+ You likely do not want to install this package.
+

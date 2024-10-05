@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/home/realvinayak123/modules/git_clone/kernelsqlite/include",
+                "/home/realvinayak123/modules/git_clone/kernelsqlite/arch/x86/include",
+                "/home/realvinayak123/modules/git_clone/kernelsqlite/arch/x86/include/generated"
+            ],
+            "forcedInclude": [
+                "/home/realvinayak123/modules/git_clone/kernelsqlite/include/generated/autoconf.h"
+            ],
+            "defines": [
+                "__KERNEL__",
+                "MODULE"
+            ],
+            "compilerPath": "/usr/bin/x86_64-linux-gnu-gcc",
+            "cStandard": "gnu11",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}
