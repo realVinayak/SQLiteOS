@@ -867,7 +867,7 @@ static ssize_t sqlfs_part_read(
     int ret = SQLITE_OK;
     int previous_flags = 0;
     struct inode *inode = file_inode(file);
-
+    size_t actually_read = 0;
     sqlite3_stmt *stmt;
     sqlite3 *db;
 
@@ -882,7 +882,11 @@ static ssize_t sqlfs_part_read(
         ret = -current_size;
         goto sql_revert;
     }
-    if (offset >= current_size) return 0;
+    if (offset >= current_size) {
+        ret = SQLITE_OK;
+        actually_read = 0;
+        goto sql_revert;
+    };
     if (offset + len > current_size){
         len = current_size - offset;
     }
@@ -933,12 +937,12 @@ static ssize_t sqlfs_part_read(
     ret = SQLITE_OK;
 
     *ppos = offset + len;
-
+    actually_read = len;
 sql_revert:
     sqlite3_finalize(stmt);
     ksqlite_close_for_write(previous_flags, ret == SQLITE_OK);
     if (ret != SQLITE_OK) return -ret;
-    return len;
+    return actually_read;
 }
 
 static ssize_t sqlfs_read(
