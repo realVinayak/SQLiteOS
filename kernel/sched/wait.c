@@ -244,7 +244,6 @@ void __wake_up_pollfree(struct wait_queue_head *wq_head)
 	/* POLLFREE must have cleared the queue. */
 	WARN_ON_ONCE(waitqueue_active(wq_head));
 }
-EXPORT_SYMBOL_GPL(__wake_up_pollfree);
 
 /*
  * Note: we use "set_current_state()" _after_ the wait-queue add,
@@ -425,7 +424,8 @@ EXPORT_SYMBOL(autoremove_wake_function);
 
 static inline bool is_kthread_should_stop(void)
 {
-	return (current->flags & PF_KTHREAD) && kthread_should_stop();
+	if (!(current->flags & PF_KTHREAD)) return false;
+	return kthread_should_stop();
 }
 
 /*
@@ -457,6 +457,8 @@ long wait_woken(struct wait_queue_entry *wq_entry, unsigned mode, long timeout)
 	 * or woken_wake_function() sees our store to current->state.
 	 */
 	set_current_state(mode); /* A */
+	// printk("current process is %p\n", current);
+	// printk("should stop :%d\n", is_kthread_should_stop());
 	if (!(wq_entry->flags & WQ_FLAG_WOKEN) && !is_kthread_should_stop())
 		timeout = schedule_timeout(timeout);
 	__set_current_state(TASK_RUNNING);

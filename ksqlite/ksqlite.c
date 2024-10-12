@@ -66,7 +66,7 @@ static void ksqlite_free(void * object){
     //int size = (int)ksize(object);
     //printk("free calling with %d, %d, %d\n", size, total_bytes, total_bytes - size);
     //total_bytes -= size;
-    kfree(object);
+    kvfree(object);
     return;
 }
 
@@ -214,6 +214,17 @@ void __init ksqlite_init(void) {
         sqlite3_free(zErrMesg);
     } else {
         printk("data table for partitioned files created successfully\n");
+    }
+
+    sql = "create index inode_order on partitioned_data (inode_no, order_no);";
+
+    rc = sqlite3_exec(sqlite_main_db, sql, NULL, 0, &zErrMesg);
+
+    if( rc != SQLITE_OK ){
+        printk("SQL error: %s\n", zErrMesg);
+        sqlite3_free(zErrMesg);
+    } else {
+        printk("index inode_rc table for partitioned files created successfully\n");
     }
 
     rc = sqlite3_close(sqlite_main_db);
@@ -1024,7 +1035,7 @@ int ksqlite_setup_for_write(int *p_flags, int lock_flag){
         printk("utiliziing a previous lock of %d", lock_flag);
         return SQLITE_OK;
     }
-    printk("didn't find previous, making a new one");
+    // printk("didn't find previous, making a new one");
     sql_ref = kmalloc(sizeof(struct sql_compact), GFP_KERNEL);
     current->sql_ref = sql_ref;
     previous_flags = IS_UNTOUCHED;

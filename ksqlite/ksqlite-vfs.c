@@ -9,7 +9,7 @@
 #include <linux/vmalloc.h>
 #include "more.h"
 
-#define KSQLITE_VFS_BLOB_SIZE 512
+#define KSQLITE_VFS_BLOB_SIZE 4096
 
 static const struct inode_operations sqlfs_inode_ops;
 struct file_operations sqlfs_file_ops;
@@ -133,15 +133,14 @@ int insert_user_blob(
     sqlite3 *db,
     const char __user *buf
     ){
-    char temp_buff[KSQLITE_VFS_BLOB_SIZE];
-    // char *temp_buff = kmalloc(KSQLITE_VFS_BLOB_SIZE, GFP_KERNEL);
+    char *temp_buff = kmalloc((sizeof(char))*KSQLITE_VFS_BLOB_SIZE, GFP_KERNEL);
     int rc = SQLITE_OK;
     if (copy_from_user(temp_buff, buf, KSQLITE_VFS_BLOB_SIZE)){
-        // kfree(temp_buff);
+        kfree(temp_buff);
         return EFAULT;
     }
     rc =  insert_blob(order_no, inode_no, db, temp_buff);
-    // kfree(temp_buff);
+    kfree(temp_buff);
     return rc;
 }
 
@@ -220,16 +219,16 @@ revert:
 }
 
 int update_user_blob(int order_no, int inode_no, sqlite3 *db, const char __user *buf){
-    char temp_buff[KSQLITE_VFS_BLOB_SIZE];
-    // char *temp_buff = kmalloc(KSQLITE_VFS_BLOB_SIZE, GFP_KERNEL);
-    // if (!temp_buff) return ENOMEM;
+    // char temp_buff[KSQLITE_VFS_BLOB_SIZE];
+    char *temp_buff = kmalloc((sizeof(char))*KSQLITE_VFS_BLOB_SIZE, GFP_KERNEL);
+    if (!temp_buff) return ENOMEM;
     int rc = SQLITE_OK;
     if (copy_from_user(temp_buff, buf, KSQLITE_VFS_BLOB_SIZE)){
-        // kfree(temp_buff);
+        kfree(temp_buff);
         return EFAULT;
     }
     rc = update_blob(order_no, inode_no, db, temp_buff);
-    // kfree(temp_buff);
+    kfree(temp_buff);
     return rc;
 }
 
@@ -524,7 +523,7 @@ static struct dentry *sqlfs_lookup(struct inode *dir, struct dentry *dentry, uns
         return ERR_PTR(-ENAMETOOLONG);
     }
 
-    printk("trying to lookup!");
+    // printk("trying to lookup!");
 
     if ((rc = ksqlite_open_db("/test", &db)) != SQLITE_OK ) goto eit;
 
@@ -900,7 +899,7 @@ static ssize_t sqlfs_part_read(
 
     int order_iter = 0;
 
-    temp_buff = vmalloc(KSQLITE_VFS_BLOB_SIZE);
+    temp_buff = vmalloc(sizeof(char)*KSQLITE_VFS_BLOB_SIZE);
     for (order_iter = start_no+1; order_iter < last_no; order_iter++){
         if ((ret = get_blob_at_order(order_iter, inode->i_ino, db, temp_buff)) != SQLITE_OK){
             goto sql_revert;
@@ -1159,7 +1158,7 @@ static ssize_t sqlfs_part_write(
     sqlite3_stmt *stmt = NULL;
 
     char *temp_buff = NULL;
-    printk("trying to write");
+    //printk("trying to write");
     if ((ret = ksqlite_setup_for_write(&previous_flags, SQL_LOCKED_FOR_WRITE)) != SQLITE_OK){
         goto sql_revert;
     }
@@ -1202,7 +1201,7 @@ static ssize_t sqlfs_part_write(
     }
 
     char *first_block = NULL;
-    temp_buff = vmalloc(KSQLITE_VFS_BLOB_SIZE);
+    temp_buff = vmalloc(sizeof(char)*KSQLITE_VFS_BLOB_SIZE);
     int needs_insert = 0;
     if (current_pos_no > adjusted_size){
         memset(temp_buff, 0, KSQLITE_VFS_BLOB_SIZE);
@@ -1213,8 +1212,8 @@ static ssize_t sqlfs_part_write(
         }
     }
     int to_write_offset = pos % KSQLITE_VFS_BLOB_SIZE;
-    int write_at_most = min((pos + 1)*KSQLITE_VFS_BLOB_SIZE, pos + len);
-
+    int write_at_most = min((current_pos_no + 1)*KSQLITE_VFS_BLOB_SIZE, pos + len);
+    // printk("asking to write these many bytes: %d at the position: %d", write_at_most-pos, to_write_offset);
     if(copy_from_user(temp_buff+to_write_offset, buff, (write_at_most - pos))){
         ret = EFAULT;
         goto sql_revert;
@@ -1233,7 +1232,7 @@ static ssize_t sqlfs_part_write(
     
     const int last_id = (pos + len) % KSQLITE_VFS_BLOB_SIZE;
 
-    printk("current: %d, size_no: %d, last no: %d adjusted no: %d\n", current_pos_no, size_no, last_no, adjusted_size);
+    // printk("current: %d, size_no: %d, last no: %d adjusted no: %d\n", current_pos_no, size_no, last_no, adjusted_size);
     if ((last_no != current_pos_no) && last_id != 0){
         needs_insert = 0;
         if (last_no > adjusted_size){
@@ -1250,12 +1249,12 @@ static ssize_t sqlfs_part_write(
         }
         // printk("buffer now at end: %s", temp_buff);
         if (needs_insert){
-            printk("inserting at end\n");
+            // printk("inserting at end\n");
             if ((ret = insert_blob(last_no, inode->i_ino, db, temp_buff))){
                 goto sql_revert;
             }
         }else{
-            printk("ipdating at end\n");
+            // printk("ipdating at end\n");
             if ((ret = update_blob(last_no, inode->i_ino, db, temp_buff))){
                 goto sql_revert;
             }
@@ -1271,6 +1270,8 @@ static ssize_t sqlfs_part_write(
         inode->i_size = mod_s;
         *ppos = *ppos + len;
     }
+
+    // if (temp_buff) vfree(temp_buff);
 sql_revert:
     sqlite3_finalize(stmt);
     ksqlite_close_for_write(previous_flags, ret == SQLITE_OK);
