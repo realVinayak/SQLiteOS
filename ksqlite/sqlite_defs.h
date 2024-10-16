@@ -7,7 +7,7 @@
 #include <linux/mutex.h>
 #include <linux/sched.h>
 #include <linux/vmalloc.h>
-#include <linux/slab.h>    
+#include <linux/slab.h>
 
 // int ksqlite_open_db(char *, sqlite3 **);
 // sqlite3_int64 make_data_id(sqlite3 *, unsigned int, unsigned int);

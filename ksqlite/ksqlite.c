@@ -413,6 +413,8 @@ sql_exit:
 }
 
 int ksqlite_insert_into_pid(pid_t insert_pid, pid_t lookup_pid){
+
+    return 0;
     sqlite3 *db;
     int rc;
 
@@ -1042,7 +1044,7 @@ int ksqlite_setup_for_write(int *p_flags, int lock_flag){
     *p_flags = previous_flags;
     
     if (lock_flag >= SQL_LOCKED_FOR_WRITE){
-        //printk("starting a lock!");
+        printk("starting a lock!");
         mutex_lock(&ksqlite_write_mutex);
     }
     sql_ref->mode = lock_flag;
@@ -1065,12 +1067,6 @@ void ksqlite_close_for_write(int previous_flags, bool should_commit){
     char *zErrMesg;
     if (previous_flags != IS_UNTOUCHED) return;
 
-    // if we are thee ones who touched it, undo that.
-    if (current->sql_ref->mode == SQL_LOCKED_FOR_WRITE){
-        //printk("unlocking!");
-        mutex_unlock(&ksqlite_write_mutex);
-    }
-
     if (current->sql_ref->db){
         if (should_commit){
             if ((rc = ksqlite_commit_transaction((sqlite3*)current->sql_ref->db, &zErrMesg))){
@@ -1084,6 +1080,13 @@ void ksqlite_close_for_write(int previous_flags, bool should_commit){
             BUG();
         }
     }
+
+    // if we are thee ones who touched it, undo that.
+    if (current->sql_ref->mode == SQL_LOCKED_FOR_WRITE){
+        printk("unlocking!");
+        mutex_unlock(&ksqlite_write_mutex);
+    }
+
     // TODO: As an optimization, don't free
     kfree(current->sql_ref);
     current->sql_ref = NULL;   
