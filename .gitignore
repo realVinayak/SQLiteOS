@@ -98,3 +98,5 @@ kernelsqlite.code-workspace
 
 ksqlite.c.old.txt
 ksqlite/debug8.txt
+
+.version
