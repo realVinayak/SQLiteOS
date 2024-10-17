@@ -14,6 +14,18 @@
 static const struct inode_operations sqlfs_inode_ops;
 struct file_operations sqlfs_file_ops;
 
+// rollbacks ugh
+struct inode_size {
+    struct inode *inode;
+    ssize_t size;
+};
+
+int commit_size_change(void *size_struct){
+    struct inode_size * size_struct_nice = (struct inode_size *)size_struct;
+    size_struct_nice->inode->i_size = size_struct_nice->size;
+    return 0;
+}
+
 int insert_zero_blob(int order_no, int inode_no, sqlite3 *db);
 
 
@@ -1154,8 +1166,10 @@ static ssize_t sqlfs_part_write(
     loff_t pos = *ppos;
     int previous_flags = 0;
 
-    sqlite3 *db;
+    sqlite3 *db = NULL;
     sqlite3_stmt *stmt = NULL;
+    struct inode_size * i_size;
+    struct inode_size * prev_i_size;
 
     char *temp_buff = NULL;
     //printk("trying to write");
@@ -1165,12 +1179,17 @@ static ssize_t sqlfs_part_write(
 
     db = (sqlite3*)(current->sql_ref->db);
 
+    const int actual_size = actual_s(inode->i_ino, db);
+    if (actual_size < 0){
+        ret = -actual_size;
+        goto sql_revert;
+    }
     const int current_pos_no = ((int) pos) / KSQLITE_VFS_BLOB_SIZE;
-    const int size_no = ((int) inode->i_size) / KSQLITE_VFS_BLOB_SIZE;
+    const int size_no = ((int) actual_size) / KSQLITE_VFS_BLOB_SIZE;
     const int last_no = ((int) (len + pos)) / KSQLITE_VFS_BLOB_SIZE;
 
     int adjusted_size;
-    if ((inode->i_size % KSQLITE_VFS_BLOB_SIZE) == 0){
+    if ((actual_size % KSQLITE_VFS_BLOB_SIZE) == 0){
         adjusted_size = size_no - 1;
     }else{
         adjusted_size = size_no;
@@ -1262,18 +1281,33 @@ static ssize_t sqlfs_part_write(
     }
     int mod_s;
     if (ret == SQLITE_OK){
-        mod_s = max(inode->i_size, pos + len);
+        mod_s = max(actual_size, pos + len);
         ret = update_size( mod_s,inode->i_ino, db);
     }
 
     if (ret == SQLITE_OK){
-        inode->i_size = mod_s;
+        // inode->i_size = mod_s;
         *ppos = *ppos + len;
     }
 
     // if (temp_buff) vfree(temp_buff);
 sql_revert:
     sqlite3_finalize(stmt);
+    // if we are going to rollback, we just set the on-commit to be null --- since we'll be rolling back the entire transaction anyways.
+    if (db){
+        if (ret == SQLITE_OK){
+            i_size = kmalloc(sizeof(struct inode_size), GFP_KERNEL);
+            if (!i_size) goto failed_hook_register;
+            i_size->inode = inode;
+            i_size->size = mod_s;
+            prev_i_size = (struct inode_size *)sqlite3_commit_hook(db, commit_size_change, i_size);
+            if (prev_i_size) kfree(prev_i_size);
+        }else{
+            prev_i_size = (struct inode_size *)sqlite3_commit_hook(db, NULL, NULL);
+            if (prev_i_size) kfree(prev_i_size);
+        }
+    }
+failed_hook_register:
     ksqlite_close_for_write(previous_flags, ret == SQLITE_OK);
     if (ret != SQLITE_OK) return -ret;
     return len;
