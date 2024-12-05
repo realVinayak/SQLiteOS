@@ -1,3 +1,7 @@
+# SQLiteOS
+
+SQLiteOS is a database-backed operating system that runs SQLite3 in the Linux kernel and provides database-backed services to user space, such as interprocess communication (IPC) and transactional virtual file system (VFS). Please follow traditional Linux build instructions. Currently the extension is tested on x86 Microsoft-WSL2 ([main](https://github.com/realVinayak/SQLiteOS/tree/main) branch) and x86 Amazon EC2 ([linux-aws](https://github.com/realVinayak/SQLiteOS/tree/linux-aws) branch). Please direct any questions via git issues or email to vinayakjha@ku.edu. This is a hobby project which begun as a course-project for a graduate systems project at University of Kansas. Strongly inspired by [DBOS](https://dbos-project.github.io/). 
+
 # Introduction
 
 The [WSL2-Linux-Kernel][wsl2-kernel] repo contains the kernel source code and
