@@ -4,7 +4,7 @@ SQLiteOS is a database-backed operating system that runs SQLite3 in the Linux ke
 
 Also see transactional [extension](https://github.com/realVinayak/mysql-server-isam) of MyISAM, which leverages SQLiteOS (please don't use it for _any_ production database, since the file system is in-memory, and consequently, the database data is also in-memory).
 
-The code is made open-source partially for the spirit of learning, and if you find any improvements, please drop an email or an issue, or, even better, a PR!
+The code is made open-source partially in the spirit of learning, and if you find any improvements, please drop an email or an issue, or, even better, a PR!
 
 # Introduction
 
