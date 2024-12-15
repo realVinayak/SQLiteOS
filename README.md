@@ -6,6 +6,8 @@ Also see transactional [extension](https://github.com/realVinayak/mysql-server-i
 
 The code is made open-source partially in the spirit of learning, and if you find any improvements, please drop an email or an issue, or, even better, a PR!
 
+IPC implementation details can be found [here](https://github.com/realVinayak/SQLiteOS/blob/main/SQLiteOS.pdf)
+
 # Introduction
 
 The [WSL2-Linux-Kernel][wsl2-kernel] repo contains the kernel source code and
